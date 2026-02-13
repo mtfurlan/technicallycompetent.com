@@ -1,13 +1,13 @@
 ---
-title: US consumer reporting companies you should freeze
+title: US resident credit agency & information broker todo list
 ---
 
-This is a list of places you need accounts, and information brokers you should
-freezes.
+This is a list of places you should have accounts to prevent fraud as well as
+information brokers and credit agencies you should freeze for both fraud and
+privacy reasons.
 
-It's based on [Brian Krebs](https://krebsonsecurity.com/)'s posts as well as
-the Consumer Financial Protection Bureau's (CFBP) list of consumer reporting
-companies
+It's based on Brian Krebs' posts as well as the Consumer Financial Protection
+Bureau's (CFBP) list of consumer reporting companies
 
 * [CFBP: List of consumer reporting companies][consumer reporting companies] last updated 2025 January
 * [Krebs on Security: Why & Where You Should Plant Your Flag](https://krebsonsecurity.com/2020/08/why-where-you-should-you-plant-your-flag/)
@@ -16,8 +16,8 @@ companies
 * [Krebs on Security: How to Opt Out of Equifax Revealing Your Salary History](https://krebsonsecurity.com/2017/11/how-to-opt-out-of-equifax-revealing-your-salary-history/)
 
 
-You also should log into all the stupid accounts every year or so, because they
-change things and break freezes or just delete your account.
+You also should log into all the stupid accounts every year or two, because they
+randomly unfreeze, or even sometimes delete your account.
 
 Never give any of them money for anything, it's all free.
 
