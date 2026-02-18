@@ -29,6 +29,9 @@ emails/month on their free plain is fine for me.
 
 Steps:
 1. create account
-1. do the verified senders domain verification setup
-1. add smtp user
-1. in gmail add a sending alias with the smtp user
+2. do the verified senders domain verification setup
+3. add smtp user
+4. in gmail add a sending alias with the smtp user
+
+----
+Update 2026-02-17: I ended up moving to a paid google workspace because calendars kept working poorly with that setup.
