@@ -1,5 +1,7 @@
 ---
 title: Youtube with yt-dlp & Widevine DRM decoding
+date: 2025-01-03
+redirectFrom: drafts/youtube-widevine-drm
 ---
 
 
@@ -101,6 +103,6 @@ Knowing anything about widevine or DASH would *really* have helped here.
 * `ffmpeg -i decrypted_video.mp4 -i decrypted_audio.m4a -vcodec copy -acodec copy decrypted_bundle.mp4`
 
 
-#### Making this not fucking suck to do
+#### NEXT STEPS: Making this not suck to do
 ##### Expectations
 * yt-dlp interface that handles this stupid stuff with no manual steps

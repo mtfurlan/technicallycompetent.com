@@ -1,5 +1,7 @@
 ---
 title: Temperature controlled peltier box
+date: 2024-10-01
+redirectFrom: drafts/temp-box
 ---
 
 I have a drug that needs to be "room temperature", or 20-25C, but the rooms in

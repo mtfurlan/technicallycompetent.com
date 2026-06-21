@@ -1,5 +1,7 @@
 ---
 title: Backup Solution Comparison
+date: 2026-01-07
+redirectFrom: drafts/backup-comparison
 ---
 I would really like backups on so many things
 

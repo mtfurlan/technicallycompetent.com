@@ -1,5 +1,7 @@
 ---
 title: US resident credit agency & information broker todo list
+date: 2026-02-13
+redirectFrom: drafts/information-broker-todo
 ---
 
 This is a list of places you should have accounts to prevent fraud as well as
@@ -96,9 +98,9 @@ It is probably also a good idea to go through the [full CFBP list][consumer
 reporting companies] and request your reports to check for inaccuracies as they
 recommend.
 
-You can [submit a complaint to the CFPB](https://www.consumerfinance.gov/complaint/)
-against a consumer reporting company if they don't respond to a dispute in 45
-days, or if they refuse to fix something.
+## Incorrect Information
+If one of these places has incorrect information, you should file a dispute.
+If they refuse, or don't respond in 45 days, you should [submit a complaint to the CFPB](https://www.consumerfinance.gov/complaint/).
 
 
 [consumer reporting companies]: https://www.consumerfinance.gov/consumer-tools/credit-reports-and-scores/consumer-reporting-companies/companies-list/
