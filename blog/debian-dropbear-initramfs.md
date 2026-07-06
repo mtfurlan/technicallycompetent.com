@@ -6,6 +6,15 @@ categories: debian
 I have a lot of computers with luks encrypted root drives
 Setting them up to allow ssh unlock was less easy than could be hoped
 
+----
+
+[UPDATE](UPDATE): fun fact if the computer doesn't have network, it will block for somewhere between 60 and 240 seconds on boot, even after typing the password
+https://groups.google.com/g/linux.debian.bugs.dist/c/8Yt_Kkc-DzQ
+Not sure what to do about this yet, setting IP on the kernel boot line doesn't seem to do anything, but removing IP=dhcp from  initramfs.conf seems to have kept IP stuff enabled, but it doesn't wait forever?
+I haven't confirmed dropbear still works
+
+-----
+
 
 the [debian wiki](https://wiki.debian.org/DropBear) has some information, but it's not complete, and is overly complicated in a few ways
 
@@ -40,6 +49,10 @@ sudo dropbearconvert openssh dropbear /etc/ssh/ssh_host_ecdsa_key /etc/dropbear/
 sudo dropbearconvert openssh dropbear /etc/ssh/ssh_host_rsa_key /etc/dropbear/initramfs/dropbear_rsa_host_key
 sudo ln -s $HOME/.ssh/authorized_keys /etc/dropbear/initramfs/
 ```
+I tried to set a password or the username, but wasn't able to get it working
+
+it's going to be some kind of patch to `/usr/share/initramfs-tools/scripts/init-bottom/dropbear`
+
 
 update initramfs
 ```
