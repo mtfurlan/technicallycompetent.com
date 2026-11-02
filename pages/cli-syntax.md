@@ -75,8 +75,9 @@ Usage: ssh-setup [OPTION]... <keyname> <username> <hostname>
   keyfile is ${hostname}_ed25591
 
 Available options:
-  -c, --config     try to add to ssh-config
-  -h, --help       display this help and exit
+  -c, --config    Try to add to ssh-config
+  -h, --help      Display this help and exit
+  -V, --version   Display version and exit
 ```
 
 ### Description of the format I want
@@ -87,6 +88,8 @@ Available options:
   * POSIX.1-2017 12.2.4
 * Capitalize each option description
 * Hard 80 char line length limit
+* Option descriptions start at least two spaces after the longest option, in a
+  column that's a multiple of the indent width
 * Always put help and version last
 * No periods after each option description
 *  show version in version or at top or at bottom?
@@ -392,66 +395,108 @@ Arguments:
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")"
 
-# shellcheck disable=SC2120
-help () {
-    # if arguments, print them
-    [ $# == 0 ] || echo "$*"
+#shellcheck disable=SC2120 # optional arg
+h ()
+{
+    if [ $# != 0 ]; then
+        exec >&2 # redirect everything to stderr
+        echo "$*"
+    fi
 
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [OPTION]... <branch> [repo]...
+Usage: $(basename "${BASH_SOURCE[0]}") [OPTION]... <branch>
   branch: name of branch to checkout
-  repos: optional list of repos to act upon, otherwise uses the file 'repos'
 Available options:
-  -h, --help       display this help and exit
-  -b               create branch
-  -d, --dir=dir    do something with dir or whatever
+  -d, --dir=DIR       Do something with DIR or whatever
+  -f, --force         Force whatever
+  -v, --verbose[=N]   Increase verbosity, or set it to N
+  -q, --quiet         Set verbosity to 0
+  -h, --help          Display this help and exit
 EOF
 
-    # if args, exit 1 else exit 0
-    [ $# == 0 ] || exit 1
-    exit 0
+    exit $(( $# != 0 ))
 }
 
-msg() {
-    echo >&2 -e "${1-}"
+msg()
+{
+    printf '%s\n' "$*" >&2
 }
 
-die() {
+verbosity=0
+logLevelGE()
+{
+    local level=${1:?must pass log level}
+    if [[ "$verbosity" -ge "$level" ]]; then
+        return 0
+    fi
+    return 1
+}
+log()
+{
+    local level=${1:?must pass log level}
+    shift;
+    if logLevelGE "$level"; then
+        msg "$@"
+    fi
+}
+
+die()
+{
     local msg=$1
     local code=${2-1} # default exit status 1
     msg "$msg"
     exit "$code"
 }
 
-# getopt short options go together, long options have commas
-TEMP=$(getopt -o hd:f --long help,dir:,force -n "$0" -- "$@")
-#shellcheck disable=SC2181
-if [ $? != 0 ] ; then
-    die "something wrong with getopt"
-fi
-eval set -- "$TEMP"
+doStuff()
+{
+    local targetBranch=$1
+    local dir=$2
+    local force=$3
 
-dir=""
-force=false
-while true ; do
-    case "$1" in
-        -h|--help) h; shift ;;
-        -d|--dir) dir=$2; shift 2 ;;
-        -f|--force) force=true; shift ;;
-        --) shift ; break ;;
-        *) die "issue parsing args, unexpected argument '$0'!" ;;
-    esac
-done
+    if [ "$force" = true ]; then
+        ...
+    fi
+}
 
-targetBranch=${1:-}
-if [[ -z "$targetBranch" ]]; then
-    h "need to pass in target branch"
-fi
+# run only if not sourced
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    if ! PARSED_ARGS=$(getopt -o d:fvqh --long dir:,force,verbose::,quiet,help -n "$0" -- "$@") ; then
+        h "getopt issue ^"
+    fi
+    eval set -- "$PARSED_ARGS"
 
-if [[ "$force" == true ]]; then
-    ...
+    dir=""
+    force=false
+    while true ; do
+        case "$1" in
+            -d|--dir) dir=$2; shift 2 ;;
+            -f|--force) force=true; shift ;;
+            -v) verbosity=$((verbosity+1)); shift ;;
+            --verbose)
+                if [[ -z "$2" ]]; then verbosity=$((verbosity+1))
+                elif [[ "$2" =~ ^[0-9]+$ ]]; then verbosity=$2
+                else h "verbosity must be numeric, got '$2'"
+                fi; shift 2 ;;
+            -q|--quiet) verbosity=0; shift ;;
+            -h|--help) h ;;
+            --) shift ; break ;;
+            *) die "issue parsing args, unexpected argument '$1'!" ;;
+        esac
+    done
+
+    targetBranch=${1:-}
+    if [[ -z "$targetBranch" ]]; then
+        h "need to pass in target branch"
+    fi
+    shift
+
+    if (($# > 0)); then
+        die "unexpected positional argument '$1'" 2
+    fi
+
+    doStuff "$targetBranch" "$dir" "$force"
 fi
 ```
 
@@ -463,8 +508,8 @@ static void usage(char* name)
     printf("Print information about binary Testing Safety Message (.tsm) FILE\n");
     printf("\nOptions:\n");
     printf("  -m, --message   Print every J2735 MessageFrame as it is processed\n");
-    printf("  -j, --json      output JSON for the TSM header data\n");
-    printf("  -q, --quiet     suppress standard information on stderr\n");
+    printf("  -j, --json      Output JSON for the TSM header data\n");
+    printf("  -q, --quiet     Set verbosity to 0\n");
     printf("  -h, --help      Show this help\n");
     printf("  -V, --version   Show version (%s)\n", VERSION_COMMANDLINE_UTILS);
 }
@@ -503,7 +548,6 @@ int main(int argc, char* argv[])
             case 'V':
                 printf("%s version %s\n", argv[0], VERSION_COMMANDLINE_UTILS);
                 exit(0);
-                break;
             default: /* '?' */
                 exit(2);
         }
