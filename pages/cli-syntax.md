@@ -3,11 +3,11 @@ title: Commandline Interfaces & Help/Man Pages
 date: 2022-04-11
 ---
 
-One of the first ways a user with interact with your progarm is via `$program
+One of the first ways a user will interact with your program is via `$program
 -h`, `$program --help` or `man $program`
 
 It is very much worth putting effort into making a good impression by both
-making the help easy to read and descripive, and following convention as much
+making the help easy to read and descriptive, and following convention as much
 as possible for the actual options
 
 One way this page is going to fall short is the examples are made up
@@ -48,12 +48,11 @@ But to summarize:
 * `-abc` is equivalent to `-a -b -c` as long as abc don't take arguments
   * [POSIX.1-2017 12.2][POSIX] guideline 5
   * [GNU][GNU]
-* `-abco foo` is equivalent to `-abc -o foo`
-  * [POSIX.1-2017 12.2][POSIX] guideline 5
-* Short options should not have optional arguments, long options may using the = syntax
+* `-abco foo` is equivalent to `-a -b -c -o foo`
+  * [POSIX.1-2017 12.2][POSIX] guideline 5 and 14
+* Short options should not have optional arguments, long options may, using the = syntax
   * [POSIX.1-2017 12.2][POSIX] guideline 7
   * [GNU][GNU]
-* TODO: In 2022 I said I ignore [POSIX.1-2017 12.2][POSIX] guideline 14 with "it's neat but I don't want to support it", but I can't work out what it means today
 * Try to use common options so knowledge of other tools can kinda apply
   * [ESR's list of short options](http://www.catb.org/~esr/writings/taoup/html/ch10s05.html) (sorry but he's an annoyingly good source)
   * [common GNU long options](https://www.gnu.org/prep/standards/standards.html#Option-Table)
@@ -64,39 +63,63 @@ But to summarize:
 ## Help Format
 
 ### Example of the format I want
-based primarily off `dmesg`, `lsblk`, `ag`, `jq`, and `tar`
+based primarily off `dmesg`, `lsblk`, `ag`, and `jq`
 ```
-Usage: ssh-setup [OPTION]... <keyname> <username> <hostname>
-       ssh-setup [OPTION]... <username@hostname>
-       ssh-setup [OPTION]... <hostname>
-  make a key and try to install it on hostname
+Usage: ssh-setup [OPTIONS] <KEY> <USER> <HOSTNAME>
+       ssh-setup [OPTIONS] <USER>@<HOSTNAME>
+       ssh-setup [OPTIONS] <HOSTNAME>
+  make an ssh key named KEY for USER and try to install it on HOSTNAME
 
-  just runs 'ssh-keygen -t ed25519 -N '' -f $keyfile'
-  keyfile is ${hostname}_ed25591
+  basically runs
+  "ssh-keygen -t ed25519 -N '' -f ~/.ssh/${KEY:-HOSTNAME}_ed25519"
 
-Available options:
+Options:
   -c, --config    Try to add to ssh-config
+      --dry-run   Print the commands instead of running them
   -h, --help      Display this help and exit
-  -V, --version   Display version and exit
+```
+
+```
+Usage: crontab-ish [-u <USER>] (-e | -l)
+  edit or list a crontab
+
+Options:
+  -e, --edit        Edit the crontab
+  -l, --list        List the crontab
+  -u, --user=USER   Use USER's crontab
+  -h, --help        Display this help and exit
 ```
 
 ### Description of the format I want
-* Synopsis at the top, then description of the tool, then option documentation
-* `[optional arg]` shows `optional arg` is optional
-  * POSIX.1-2017 12.2.7
-* `<required arg>` shows `required arg` is required
-  * POSIX.1-2017 12.2.4
+* Synopsis at the top, then description of the tool, then a blank line, then
+  option documentation
+* `[--optional whatever]` shows `--optional whatever` is optional
+  * POSIX.1-2017 12.1.7
+* `<PARAMETER NAME>` shows `PARAMETER NAME` is a single parameter
+  * POSIX.1-2017 12.1.4
+* `a | b` means a or b, not both; `[-4 | -6]` if optional, `(-e | -l)` if one
+  is required
+  * POSIX.1-2017 12.1.8 uses `|` for mutually exclusive arguments; the `( )`
+    grouping is from git and docopt
+* Descriptions don't need to be full sentences
 * Capitalize each option description
+* No periods after each option description
 * Hard 80 char line length limit
 * Option descriptions start at least two spaces after the longest option, in a
   column that's a multiple of the indent width
-* Always put help and version last
-* No periods after each option description
-*  show version in version or at top or at bottom?
-* -V --version
-* ... mean repeated things, see [POSIX.1-2017 12.1.9][POSIX]
-  * for repeated optionals, the ... can go inside or outside [], user's choice
-  * TODO: gnu tar 1.34: `Usage: tar [OPTION...] [FILE]...`, does using both mean anything?
+* Help and other common options go last
+* Write the synopsis as `[OPTIONS] <ARG>`: uppercase sets arguments apart from
+  the surrounding text; an argument is required when it has no `[]` around it;
+  `[OPTIONS]` already implies repetition, so it gets no `...`
+* `...` means repeated things, see [POSIX.1-2017 12.1.9][POSIX]
+  * for repeated optionals, the `...` can go inside or outside `[]`, both are
+    common and mean the same in practice
+  * `[OPTION]...` is the coreutils style (`ls`, `grep`, `df`, `cp`), and
+    matches POSIX's `[-g option_argument]...` form for options
+  * `[OPTION...]` is what glibc's argp prints (`tar`, `file`), and matches
+    POSIX's `[operand...]` form for operands
+* Exit 0 for `--help` and print it to stdout; for usage errors print to stderr
+  and exit 2 (bash builtins, Python argparse)
 
 
 
@@ -392,11 +415,12 @@ Arguments:
 
 ## Example Implementations
 ### Bash
+Needs the GNU `getopt`, the BSD/macOS `getopt` doesn't support long options
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-#shellcheck disable=SC2120 # optional arg
 h ()
 {
     if [ $# != 0 ]; then
@@ -404,50 +428,48 @@ h ()
         echo "$*"
     fi
 
-  cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [OPTION]... <branch>
-  branch: name of branch to checkout
-Available options:
-  -d, --dir=DIR       Do something with DIR or whatever
+    cat <<EOF
+Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] <BRANCH>
+  BRANCH: name of branch to checkout
+
+Options:
+  -d, --dir=DIR       Do something with DIR (default: script dir)
   -f, --force         Force whatever
   -v, --verbose[=N]   Increase verbosity, or set it to N
-  -q, --quiet         Set verbosity to 0
+  -q, --quiet         Decrease verbosity
   -h, --help          Display this help and exit
 EOF
 
-    exit $(( $# != 0 ))
+    exit $(( $# != 0 ? 2 : 0 )) # 2: usage error
 }
 
-msg()
-{
-    printf '%s\n' "$*" >&2
+msg() { >&2 printf '%s\n' "$*"; }
+# shellcheck disable=SC2317 # example: overridden by the debugging die below
+die() {
+    [[ -n "${1-}" ]] && msg "${1-}"
+    exit "${2:-1}"
+}
+
+# use if die is more of a debugging tool
+die() {
+    msg "[${FUNCNAME[1]}:${BASH_LINENO[0]}] ${1-}"
+    exit "${2:-1}"
 }
 
 verbosity=0
 logLevelGE()
 {
-    local level=${1:?must pass log level}
-    if [[ "$verbosity" -ge "$level" ]]; then
-        return 0
-    fi
-    return 1
+    (( ${verbosity:-0} >= ${1:?must pass log level} ))
 }
+
 log()
 {
-    local level=${1:?must pass log level}
-    shift;
-    if logLevelGE "$level"; then
+    if logLevelGE "${1:?must pass log level}"; then
+        shift
         msg "$@"
     fi
 }
 
-die()
-{
-    local msg=$1
-    local code=${2-1} # default exit status 1
-    msg "$msg"
-    exit "$code"
-}
 
 doStuff()
 {
@@ -456,18 +478,18 @@ doStuff()
     local force=$3
 
     if [ "$force" = true ]; then
-        ...
+        echo "force was true or whatever"
     fi
 }
 
-# run only if not sourced
+
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     if ! PARSED_ARGS=$(getopt -o d:fvqh --long dir:,force,verbose::,quiet,help -n "$0" -- "$@") ; then
         h "getopt issue ^"
     fi
     eval set -- "$PARSED_ARGS"
 
-    dir=""
+    dir="$DIR" # default to the script's directory
     force=false
     while true ; do
         case "$1" in
@@ -476,10 +498,10 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
             -v) verbosity=$((verbosity+1)); shift ;;
             --verbose)
                 if [[ -z "$2" ]]; then verbosity=$((verbosity+1))
-                elif [[ "$2" =~ ^[0-9]+$ ]]; then verbosity=$2
+                elif [[ "$2" =~ ^[0-9]+$ ]]; then verbosity=$((10#$2))
                 else h "verbosity must be numeric, got '$2'"
                 fi; shift 2 ;;
-            -q|--quiet) verbosity=0; shift ;;
+            -q|--quiet) verbosity=$(( verbosity > 0 ? verbosity - 1 : 0 )); shift ;;
             -h|--help) h ;;
             --) shift ; break ;;
             *) die "issue parsing args, unexpected argument '$1'!" ;;
@@ -493,7 +515,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     shift
 
     if (($# > 0)); then
-        die "unexpected positional argument '$1'" 2
+        h "unexpected positional argument '$1'"
     fi
 
     doStuff "$targetBranch" "$dir" "$force"
@@ -502,16 +524,16 @@ fi
 
 ### C
 ```c
-static void usage(char* name)
+static void usage(FILE* out, char* name)
 {
-    printf("Usage: %s [OPTION...] <infile>\n", name);
-    printf("Print information about binary Testing Safety Message (.tsm) FILE\n");
-    printf("\nOptions:\n");
-    printf("  -m, --message   Print every J2735 MessageFrame as it is processed\n");
-    printf("  -j, --json      Output JSON for the TSM header data\n");
-    printf("  -q, --quiet     Set verbosity to 0\n");
-    printf("  -h, --help      Show this help\n");
-    printf("  -V, --version   Show version (%s)\n", VERSION_COMMANDLINE_UTILS);
+    fprintf(out, "Usage: %s [OPTIONS] <INFILE>\n", name);
+    fprintf(out, "Print information about binary Testing Safety Message (.tsm) INFILE\n");
+    fprintf(out, "\nOptions:\n");
+    fprintf(out, "  -m, --message   Print every J2735 MessageFrame as it is processed\n");
+    fprintf(out, "  -j, --json      Output JSON for the TSM header data\n");
+    fprintf(out, "  -q, --quiet     Set verbosity to 0\n");
+    fprintf(out, "  -h, --help      Display this help and exit\n");
+    fprintf(out, "  -V, --version   Display version (%s) and exit\n", VERSION_COMMANDLINE_UTILS);
 }
 
 int main(int argc, char* argv[])
@@ -543,7 +565,7 @@ int main(int argc, char* argv[])
                 verbosity = 0;
                 break;
             case 'h':
-                usage(argv[0]);
+                usage(stdout, argv[0]);
                 exit(0);
             case 'V':
                 printf("%s version %s\n", argv[0], VERSION_COMMANDLINE_UTILS);
@@ -555,9 +577,9 @@ int main(int argc, char* argv[])
 
     // accept one arg
     if (argc - optind != 1) {
-        printf("ERROR: Missing or additional arguments found.\n");
-        usage(argv[0]);
-        return 1;
+        fprintf(stderr, "ERROR: Missing or additional arguments found.\n");
+        usage(stderr, argv[0]);
+        return 2;
     }
     char* inputFilename = argv[optind];
     ...
